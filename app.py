@@ -10,6 +10,9 @@ from streamlit_agraph import agraph, Node, Edge, Config
 st.set_page_config(page_title="Career Mission Command", page_icon="🎖️", layout="wide")
 
 if "xp" not in st.session_state: st.session_state.xp = 0
+if "just_leveled_up" not in st.session_state: st.session_state.just_leveled_up = False
+if "last_answer_correct" not in st.session_state: st.session_state.last_answer_correct = False
+if "reached_max_level" not in st.session_state: st.session_state.reached_max_level = False
 
 sidebar_bg = "#0f172a" 
 if st.session_state.xp >= 500:
@@ -40,9 +43,59 @@ st.markdown(f"""
         line-height: 1.5;
         border-left: 5px solid #eab308;
     }}
-    .sticky-note b {{ color: #1f2937 !important; }}
     
-    /* Premium Button Styling */
+    @keyframes pointer-bounce {{
+        0%, 100% {{ transform: translateX(0); }}
+        50% {{ transform: translateX(10px); }}
+    }}
+    @keyframes pointer-bounce-up {{
+        0%, 100% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-8px); }}
+    }}
+    @keyframes xp-pulse {{
+        0% {{ transform: scale(1); color: white; }}
+        50% {{ transform: scale(1.1); color: #fbbf24; text-shadow: 0px 0px 15px #fbbf24; }}
+        100% {{ transform: scale(1); color: white; }}
+    }}
+    @keyframes vault-pulse {{
+        0% {{ box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); transform: scale(1); }}
+        50% {{ box-shadow: 0 0 20px 10px rgba(245, 158, 11, 0); transform: scale(1.02); }}
+        100% {{ box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); transform: scale(1); }}
+    }}
+    
+    .guide-pointer {{
+        animation: pointer-bounce 1s infinite;
+        color: #d97706; font-weight: bold; font-size: 1.1rem;
+        background: #fef3c7; padding: 10px; border-radius: 8px;
+        border-left: 4px solid #f59e0b; margin-bottom: 15px;
+    }}
+    .guide-pointer-success {{
+        animation: pointer-bounce 1s infinite;
+        color: #166534; font-weight: bold; font-size: 1.1rem;
+        background: #dcfce7; padding: 10px; border-radius: 8px;
+        border-left: 4px solid #22c55e; margin-bottom: 15px;
+    }}
+    .guide-pointer-up {{
+        animation: pointer-bounce-up 1s infinite;
+        text-align: center; color: #d97706; font-weight: bold;
+        font-size: 1.1rem; margin-top: 15px;
+    }}
+    .xp-highlight {{
+        animation: xp-pulse 1.5s ease-in-out;
+        color: #fbbf24 !important;
+    }}
+    .vault-glow {{
+        animation: vault-pulse 2s infinite;
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+        color: white !important; padding: 15px; border-radius: 8px;
+        text-align: center; font-weight: bold; font-size: 1.2rem;
+        margin-bottom: 15px; border: 2px solid #fbbf24;
+    }}
+    .doc-highlight {{
+        background-color: #dcfce7; color: #166534 !important;
+        padding: 12px; border-radius: 8px; border-left: 5px solid #22c55e;
+        font-weight: bold; margin-top: 10px;
+    }}
     .premium-btn {{
         background-color: #f59e0b; color: white !important; font-weight: bold; text-align: center; 
         padding: 10px; border-radius: 5px; text-decoration: none; display: block; margin-top: 10px;
@@ -89,7 +142,11 @@ with st.sidebar:
         
     st.markdown(f"## {rank}")
     st.progress(min(st.session_state.xp / 500, 1.0))
-    st.write(f"**Total XP:** {st.session_state.xp} / 500")
+    
+    xp_class = "xp-highlight" if st.session_state.just_leveled_up else ""
+    xp_icon = "🎉🎈" if st.session_state.just_leveled_up else ""
+    st.markdown(f"<div class='{xp_class}' style='font-size: 1.15rem; margin-bottom: 15px;'><b>Total XP:</b> {st.session_state.xp} / 500 {xp_icon}</div>", unsafe_allow_html=True)
+    st.session_state.just_leveled_up = False 
     
     st.divider()
     model_choice = st.selectbox("Engine:", ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"])
@@ -97,35 +154,61 @@ with st.sidebar:
     st.markdown("""
     <div class="sticky-note">
         <b>📌 Field Manual</b><br>
-        1️⃣ <b>Strategy:</b> Ask for a roadmap to deploy your map.<br>
-        2️⃣ <b>Target:</b> Click a node on the map to lock it in.<br>
-        3️⃣ <b>Proving Grounds:</b> Hit <i>⚡ Quick Test</i> to answer PYQs & earn XP. You can grind the same subject for multiple points!<br>
-        4️⃣ <b>Unlock:</b> Hit 200 XP to crack the Vault. Hit 400 XP for the Boss Battle!
+        1️⃣ <b>Strategy:</b> Ask for a roadmap.<br>
+        2️⃣ <b>Target:</b> Click a node on the map.<br>
+        3️⃣ <b>Proving Grounds:</b> Hit <i>⚡ Quick Test</i>.<br>
+        4️⃣ <b>Unlock:</b> Hit 200 XP for the Vault.<br>
+        5️⃣ <b>Mastery:</b> Hit 500 XP for the Ultimate Reward!
     </div>
     """, unsafe_allow_html=True)
     
-    st.divider()
+    if st.session_state.xp >= 500:
+        if not st.session_state.reached_max_level:
+            st.balloons()
+            st.snow()
+            st.session_state.reached_max_level = True
+        
+        st.markdown("<div class='vault-glow' style='background: linear-gradient(90deg, #10b981, #059669); border-color:#34d399;'>🏆 HALL OF FAME UNLOCKED</div>", unsafe_allow_html=True)
+        st.success("You are a Strategic General. You have conquered the map and the Crucible.")
+        
+        cert_data = f"""
+=========================================
+      CERTIFICATE OF MASTERY
+=========================================
+
+RANK ACHIEVED: Strategic General
+TOTAL XP: {st.session_state.xp}
+
+This certifies that you have successfully 
+navigated the Career Mission Command, 
+defeated the Proving Grounds, and cracked 
+the Crucible Boss Exam.
+
+=========================================
+        """
+        st.download_button("📜 Download Mastery Certificate", data=cert_data, file_name="Certificate_Of_Mastery.txt")
+        st.divider()
+
     st.markdown("### 🔐 Classified Vault")
     if st.session_state.xp >= 200:
         if not st.session_state.is_premium:
             st.warning("🛑 Premium Intel Locked.")
-            st.markdown("You have proven your skills. Upgrade to Premium to instantly generate custom cheat sheets for your active subjects.")
-            st.markdown("<a href='#' class='premium-btn'>💳 Unlock Premium (₹999)</a>", unsafe_allow_html=True)
+            st.markdown("Upgrade to Premium to instantly generate custom cheat sheets.")
+            st.markdown("<a href='#' class='premium-btn'>💳 Unlock Premium (₹99)</a>", unsafe_allow_html=True)
             
             if st.button("Unlock for Free (Dev Mode)"):
                 st.session_state.is_premium = True
                 st.rerun()
         else:
-            st.success("🔓 Vault Unlocked!")
+            st.markdown("<div class='vault-glow'>🔓 VAULT UNLOCKED!</div>", unsafe_allow_html=True)
             if not st.session_state.vault_intel:
                 with st.spinner("Decrypting custom intel..."):
                     active_topics = ", ".join(st.session_state.skill_tree.keys()) if st.session_state.skill_tree else "General Exam Topics"
-                    vault_prompt = f"""You are a master tutor. Create a highly useful, dense study cheat sheet for the following topics: {active_topics}. 
-                    CRITICAL INSTRUCTION: DO NOT GIVE GENERIC ADVICE. Give actual hard data. 
-                    - If the topics are Math/Quant: Provide 10-15 actual mathematical formulas. 
-                    - If the topics are English: Provide 10 critical grammar rules or vocabulary words with meanings.
-                    - If the topics are Finance/Accounting/Law: Provide 10 key sections, standards, or accounting principles.
-                    Output ONLY plain text. Do not use markdown styling."""
+                    vault_prompt = f"""Create a dense study cheat sheet for: {active_topics}. 
+                    - Math/Quant: 10 actual formulas. 
+                    - English: 10 grammar rules.
+                    - Finance/Law: 10 key sections/principles.
+                    Output ONLY plain text."""
                     
                     try:
                         res = client.chat.completions.create(messages=[{"role": "system", "content": vault_prompt}], model=model_choice)
@@ -141,7 +224,7 @@ with st.sidebar:
     up_file = st.file_uploader("Upload Intel", type=["pdf", "docx"])
     if up_file:
         st.session_state.doc_context = extract_text(up_file)
-        st.success("✅ Context Synced")
+        st.markdown("<div class='doc-highlight'>✅ Intel Synced to AI Brain!</div>", unsafe_allow_html=True)
         
     if st.button("🗑️ Reset Application"):
         st.session_state.clear()
@@ -153,7 +236,7 @@ col_main, col_tree = st.columns([3, 2], gap="large")
 with col_tree:
     st.subheader("🗺️ Interactive Journey Map")
     if not st.session_state.skill_tree:
-        st.info("Ask for a roadmap in the Strategy Tab to deploy your interactive map.")
+        st.info("Your map is empty. Follow the pointer in the Strategy Tab to begin.")
     else:
         nodes = []
         edges = []
@@ -182,13 +265,18 @@ with col_tree:
         if clicked_node:
             st.session_state.active_map_node = clicked_node
             
+        if st.session_state.skill_tree and not st.session_state.active_map_node:
+            st.markdown("<div class='guide-pointer-up'>👆 Step 2: Click a circle on the map above to select your target!</div>", unsafe_allow_html=True)
+            
         if st.session_state.active_map_node:
             st.markdown(f"""
                 <div style="background-color: #f1f5f9; padding: 15px; border-radius: 10px; border-left: 5px solid #0f172a; margin-top: 10px;">
                     <h4 style="color: #0f172a; margin-top: 0;">🎯 Target: {st.session_state.active_map_node}</h4>
-                    <p style="color: #334155; font-size: 0.95rem;">Switch to the <b>Proving Grounds</b> and hit <b>Quick Test</b>.</p>
                 </div>
             """, unsafe_allow_html=True)
+            
+            if not st.session_state.last_answer_correct:
+                st.markdown("<div class='guide-pointer-up'>👉 Step 3: Switch to the 'Proving Grounds' tab on the left!</div>", unsafe_allow_html=True)
 
 with col_main:
     tab_strat, tab_arena = st.tabs(["🗺️ Strategy Command", "⚔️ Proving Grounds"])
@@ -210,6 +298,9 @@ with col_main:
             chat_box_strat.chat_message(msg["role"]).markdown(msg["content"])
             
         st.markdown("---")
+        
+        if not st.session_state.skill_tree:
+            st.markdown("<div class='guide-pointer'>👉 Step 1: Tell me what exam you are preparing for down below!</div>", unsafe_allow_html=True)
         
         v_col1, t_col1 = st.columns([1, 4])
         with v_col1:
@@ -243,15 +334,17 @@ with col_main:
                 st.session_state.strat_questions.append(strat_query_payload)
             
             try:
+                # NEW: Smarter Macro vs Micro Planning & Verified Rules
                 sys_msg1 = f"""You are a Career Planner. Context: {st.session_state.doc_context}.
                 CRITICAL INSTRUCTIONS:
-                1. Keep your conversational advice VERY short (max 2-3 sentences). 
-                2. STRICTLY PROSE: You are completely FORBIDDEN from using bullet points, numbered lists, or headings.
-                3. FACTUAL ACCURACY: Verify the EXACT level of the examination (e.g., CA Inter vs CA Final). Strictly output ONLY subjects belonging to that specific level.
+                1. Keep your advice VERY short. Use simple, operational language. NO corporate jargon or buzzwords.
+                2. STRICTLY PROSE: NO bullet points or lists.
+                3. MACRO VS MICRO: If asked for a broad exam strategy (like SSC CGL), output the 4 MAJOR sections (e.g., Quantitative Aptitude, English Comprehension, General Intelligence, General Awareness). Do NOT output hyper-specific sub-topics unless explicitly asked to break down a section.
+                4. EXAM SPECIFICS: When detailing Quantitative Aptitude, prioritize Algebra as High weightage over Number System based on verified exam trends.
                 """
                 
-                api_messages = [{"role": "system", "content": sys_msg1}] + st.session_state.strat_history[:-1]
-                injected_prompt = st.session_state.strat_history[-1]["content"] + "\n\n[CRITICAL: You MUST end your response with exactly 4 subjects using this exact format on a new line: [TREE: Topic 1 (High) | Topic 2 (Medium) | Topic 3 (Low) | Topic 4 (High)]]"
+                api_messages = [{"role": "system", "content": sys_msg1}] + st.session_state.strat_history[-4:-1]
+                injected_prompt = st.session_state.strat_history[-1]["content"] + "\n\n[CRITICAL: You MUST end with exactly 4 subjects using this exact format on a new line: [TREE: Topic 1 (High) | Topic 2 (Medium) | Topic 3 (Low) | Topic 4 (High)]]"
                 api_messages.append({"role": "user", "content": injected_prompt})
                 
                 res = client.chat.completions.create(messages=api_messages, model=model_choice)
@@ -271,29 +364,24 @@ with col_main:
                     for t in raw_topics:
                         t = re.sub(r"(?i)\[?TREE:?\]?", "", t).replace("**", "").replace("[", "").replace("]", "").strip() 
                         t = re.sub(r"^[-:]\s*", "", t) 
-                        
                         weight = "Medium"
                         if "(High)" in t or "(high)" in t: weight = "High"; t = re.sub(r"(?i)\(High\)", "", t).strip()
                         elif "(Low)" in t or "(low)" in t: weight = "Low"; t = re.sub(r"(?i)\(Low\)", "", t).strip()
                         elif "(Medium)" in t or "(medium)" in t: t = re.sub(r"(?i)\(Medium\)", "", t).strip()
                         
-                        if len(t) > 2: 
-                            st.session_state.skill_tree[t] = {"status": "Active", "weight": weight}
+                        if len(t) > 2: st.session_state.skill_tree[t] = {"status": "Active", "weight": weight}
                     
                     st.session_state.active_map_node = None
                     st.session_state.vault_intel = "" 
-                    
-                    if not ans.strip(): ans = "Roadmap generated. Check the Interactive Map."
+                    if not ans.strip(): ans = "Roadmap generated. Check the Map."
                     st.session_state.strat_history.append({"role": "assistant", "content": ans.strip()})
                     st.rerun()
                 else:
-                    if len(st.session_state.strat_history) > 0:
-                        st.session_state.strat_history.pop() 
-                    st.error("⚠️ AI Formatting Error: The AI failed to generate the map correctly. Please try again.")
+                    if len(st.session_state.strat_history) > 0: st.session_state.strat_history.pop() 
+                    st.error("⚠️ Formatting Error: Try again.")
             except Exception as e:
-                if len(st.session_state.strat_history) > 0:
-                    st.session_state.strat_history.pop()
-                st.error(f"⚠️ API Connection Error: {e}")
+                if len(st.session_state.strat_history) > 0: st.session_state.strat_history.pop()
+                st.error(f"⚠️ API Error: {e}")
 
     # --- TAB 2: PROVING GROUNDS ---
     with tab_arena:
@@ -304,12 +392,24 @@ with col_main:
             with d_col1:
                 options = list(st.session_state.skill_tree.keys())
                 index = options.index(target_node) if target_node in options else 0
-                target_node = st.selectbox("🎯 Target Node:", options, index=index, label_visibility="collapsed")
-                st.session_state.active_map_node = target_node
+                
+                new_target = st.selectbox("🎯 Target Node:", options, index=index, label_visibility="collapsed")
+                if new_target != st.session_state.active_map_node:
+                    st.session_state.last_answer_correct = False
+                st.session_state.active_map_node = new_target
+                target_node = st.session_state.active_map_node
+
             with d_col2:
                 if st.button("⚡ Quick Test", use_container_width=True):
+                    st.session_state.last_answer_correct = False
                     st.session_state.trigger_quick_test = True
                     st.rerun()
+                    
+            if st.session_state.last_answer_correct:
+                 st.markdown("<div class='guide-pointer-success'>🎉 You got it right! Want a new challenge? Select a new topic from the dropdown above, or hit Quick Test to keep grinding this one!</div>", unsafe_allow_html=True)
+            elif st.session_state.active_map_node and len(st.session_state.arena_history) <= 1:
+                st.markdown("<div class='guide-pointer'>👉 Step 4: Click the '⚡ Quick Test' button above to spawn a question!</div>", unsafe_allow_html=True)
+                
         else:
             st.warning("Generate a map in the Strategy Tab first.")
         
@@ -340,6 +440,7 @@ with col_main:
                 if (trigger_submit and user_arena.strip()) or st.session_state.trigger_quick_test:
                     st.session_state.trigger_quick_test = False
                     st.session_state.text_arena = "" 
+                    st.session_state.last_answer_correct = False 
                     
                     display_text = f"Deploying test for {target_node}..." if not user_arena.strip() else user_arena
                     api_prompt = f"Give me a PYQ for {target_node}" if not user_arena.strip() else user_arena
@@ -347,15 +448,17 @@ with col_main:
                     
                     try:
                         is_boss = "CRUCIBLE" in target_node.upper()
-                        boss_instruction = "This is the FINAL BOSS. Ask a highly difficult question." if is_boss else "Ask a standard PYQ."
+                        
+                        active_subjects = ", ".join([k for k in st.session_state.skill_tree.keys() if "CRUCIBLE" not in k.upper()])
+                        boss_instruction = f"This is the FINAL BOSS. Ask a highly difficult question that integrates concepts from these subjects: {active_subjects}. DO NOT ask about a literal 'Crucible'." if is_boss else "Ask a standard PYQ."
                         
                         sys_msg2 = f"""You are a strict Examiner. Context: {st.session_state.doc_context}. TARGET TOPIC: {target_node}.
                         1. {boss_instruction}
-                        2. MANDATORY FORMAT: You MUST ask ONE Multiple Choice Question (MCQ) with exactly four options labeled A, B, C, and D. STRICTLY PROSE: Do NOT use bullet points or headings."""
+                        2. FORMAT: Ask ONE Multiple Choice Question (MCQ) with options A, B, C, D. NO bullet points."""
                         
-                        injected_arena_prompt = api_prompt + f"\n\n[CRITICAL: If the user's answer is CORRECT, you MUST output exactly this tag at the very end of your response: [MASTER: {target_node}]. If the user is WRONG, explain why but do NOT output the tag.]"
+                        injected_arena_prompt = api_prompt + f"\n\n[CRITICAL: If the user's answer is CORRECT, you MUST output exactly this tag at the very end of your response: [MASTER: {target_node}]. If WRONG, do NOT output the tag.]"
                         
-                        arena_api_messages = [{"role": "system", "content": sys_msg2}] + st.session_state.arena_history[:-1]
+                        arena_api_messages = [{"role": "system", "content": sys_msg2}] + st.session_state.arena_history[-6:-1]
                         arena_api_messages.append({"role": "user", "content": injected_arena_prompt})
                         
                         res = client.chat.completions.create(messages=arena_api_messages, model=model_choice)
@@ -364,8 +467,9 @@ with col_main:
                         m_matches = re.findall(r"\[MASTER:\s*(.*?)\s*\]", ans, re.IGNORECASE)
                         if m_matches:
                             st.session_state.xp += 50
+                            st.session_state.just_leveled_up = True
+                            st.session_state.last_answer_correct = True 
                             st.balloons()
-                            st.toast("🎯 Correct! +50 XP Earned!", icon="🔥")
                             
                             for match in m_matches:
                                 pillar = match.strip().lower()
@@ -373,7 +477,6 @@ with col_main:
                                     if pillar in key.lower() or key.lower() in pillar:
                                         if st.session_state.skill_tree[key]["status"] != "Mastered":
                                             st.session_state.skill_tree[key]["status"] = "Mastered"
-                                            st.toast(f"⭐ Node Mastered: {key}", icon="🗺️")
                             
                             if st.session_state.xp >= 400 and "👑 THE CRUCIBLE (Boss Exam)" not in st.session_state.skill_tree:
                                 st.session_state.skill_tree["👑 THE CRUCIBLE (Boss Exam)"] = {"status": "Active", "weight": "High"}
@@ -384,11 +487,11 @@ with col_main:
                         st.session_state.arena_history.append({"role": "assistant", "content": ans})
                         st.rerun()
                     except Exception as e:
-                        if len(st.session_state.arena_history) > 0:
-                            st.session_state.arena_history.pop() 
-                        st.error(f"⚠️ API Connection Error: {e}")
+                        if len(st.session_state.arena_history) > 0: st.session_state.arena_history.pop() 
+                        st.error(f"⚠️ API Error: {e}")
                 
                 if clr2.form_submit_button("🗑️ CLEAR"): 
                     st.session_state.text_arena = ""
                     st.session_state.arena_history = [{"role": "assistant", "content": "Welcome back."}]
+                    st.session_state.last_answer_correct = False
                     st.rerun()
